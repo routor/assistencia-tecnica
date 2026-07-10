@@ -40,3 +40,5 @@ pnpm-debug.log*
 
 # drizzle scratch
 /drizzle
+.vercel
+.env*

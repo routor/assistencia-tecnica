@@ -6,6 +6,7 @@ import {
   GoogleTagManagerNoscript,
 } from "@/components/analytics/google-tag-manager";
 import { getPublicEnv } from "@/lib/env";
+import { siteRobots } from "@/lib/seo/site-robots";
 import "./globals.css";
 
 /**
@@ -27,15 +28,17 @@ const atkinson = Atkinson_Hyperlegible({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Assistência técnica organizada — projeto em validação",
-    template: "%s",
-  },
-  description:
-    "Da entrada do aparelho à garantia, sem perder nada no caminho. Estamos validando um sistema simples para assistências técnicas de bancada. Participe do piloto.",
-  robots: { index: true, follow: true },
-};
+export function generateMetadata(): Metadata {
+  return {
+    title: {
+      default: "Assistência técnica organizada — projeto em validação",
+      template: "%s",
+    },
+    description:
+      "Da entrada do aparelho à garantia, sem perder nada no caminho. Estamos validando um sistema simples para assistências técnicas de bancada. Participe do piloto.",
+    robots: siteRobots(),
+  };
+}
 
 export default async function RootLayout({
   children,

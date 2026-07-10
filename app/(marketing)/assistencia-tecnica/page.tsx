@@ -4,6 +4,7 @@ import { LandingContent } from "@/components/marketing/landing-content";
 import { parseAttribution } from "@/lib/analytics/attribution";
 import { LANDING_PATH } from "@/lib/constants";
 import { getPublicEnv } from "@/lib/env";
+import { siteRobots } from "@/lib/seo/site-robots";
 
 const TITLE = "Assistência técnica organizada — projeto em validação";
 const DESCRIPTION =
@@ -18,6 +19,7 @@ export function generateMetadata(): Metadata {
     metadataBase: NEXT_PUBLIC_SITE_URL ? new URL(NEXT_PUBLIC_SITE_URL) : undefined,
     title: TITLE,
     description: DESCRIPTION,
+    robots: siteRobots(),
     alternates: { canonical },
     openGraph: {
       type: "website",

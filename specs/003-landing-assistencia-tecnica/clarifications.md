@@ -43,9 +43,12 @@ create unsafe implementation guesses.
 
 ## Deferred Owner Inputs (not feature ambiguities)
 
-See PD-001-PD-006 in `spec.md`. Each item blocks only the production/campaign release step that
-requires it. Claude Code must not invent values or represent an unavailable external control as
-enabled.
+See PD-001–PD-006 in `spec.md` and the 2026-07-10 record `owner-decisions-2026-07-10.md`.
+
+**Update 2026-07-10:** PD-001, PD-002 (provisional), PD-003, PD-006, R-2, and D-1 are resolved.
+PD-004 remains partial (Preview may use Vercel URL; campaign still needs real canonical + GTM).
+PD-005 remains partial until Socket install/first-scan readback and branch-protection evidence are
+complete. Claude Code must not invent domain/GTM values or mark missing controls as passed.
 
 ## Spec Quality Checklist Revalidation
 

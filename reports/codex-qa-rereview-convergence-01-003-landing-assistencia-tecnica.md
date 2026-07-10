@@ -48,9 +48,16 @@ Impeccable detector: 1 advisory focus-ring `2px` radius (false positive, unchang
 
 ## Notes (do not block this implementation verdict)
 
-1. **Campaign / paid traffic BLOCKED** until: CodeQL real CI run; Socket/Dependabot/Secret Scanning/Push Protection readbacks (PD-005); real GTM/privacy/domain/DB (PD-001–PD-004); LGPL/`sharp` owner policy (R-2); parent Impeccable settings decision (D-1).
-2. **FR-019** “twelve” vs data-model 13 remains a Codex/spec wording fix (not an implementation defect).
-3. **Lighthouse TBT flakiness** under local load — note for CI/preview evidence; not a reopening of F1–F10.
-4. Residual **P2** design polish (benefits/pilot card grids) is acceptable for this validation surface.
+1. **Campaign / paid traffic BLOCKED** until: real canonical `NEXT_PUBLIC_SITE_URL` +
+   `NEXT_PUBLIC_GTM_ID` (PD-004); Socket install + first-scan readback (PD-005 residual); Preview
+   env wired with Neon + PD-003 values. CodeQL real CI, Dependabot, Secret Scanning, and Push
+   Protection are evidenced on `routor/assistencia-tecnica` (post-re-review).
+2. **Owner decisions 2026-07-10** recorded in
+   `specs/003-landing-assistencia-tecnica/owner-decisions-2026-07-10.md` (PD-001/002/003/006
+   resolved; PD-004/005 partial; R-2 CTR-005 accepted; D-1 migrate).
+3. **FR-019** “twelve” vs data-model 13 remains a Codex/spec wording fix (not an implementation defect).
+4. **Lighthouse TBT flakiness** under local load — note for CI/preview evidence; not a reopening of F1–F10.
+5. Residual **P2** design polish (benefits/pilot card grids) is acceptable for this validation surface.
 
-No further Claude application correction round is required for the Phase 8 findings. Owner/external blockers stay outside Claude’s code scope.
+No further Claude application correction round is required for the Phase 8 findings. Remaining
+campaign blockers are owner/external (PD-004 + Socket readback), not Phase 8 code gaps.

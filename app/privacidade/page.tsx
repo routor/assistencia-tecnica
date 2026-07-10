@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/constants";
 import { getPrivacyPolicyConfig } from "@/lib/env";
+import { siteRobots } from "@/lib/seo/site-robots";
 
-export const metadata: Metadata = {
-  title: "Privacidade e uso de dados — projeto em validação",
-  description:
-    "Como usamos os dados do cadastro de interesse: finalidade, categorias, consentimento, limites de análise, retenção e como pedir a remoção.",
-  robots: { index: true, follow: true },
-};
+export function generateMetadata(): Metadata {
+  return {
+    title: "Privacidade e uso de dados — projeto em validação",
+    description:
+      "Como usamos os dados do cadastro de interesse: finalidade, categorias, consentimento, limites de análise, retenção e como pedir a remoção.",
+    robots: siteRobots(),
+  };
+}
 
 const dataCategories = [
   ["Identificação e contato", "Nome, nome do negócio, WhatsApp e, se você informar, e-mail."],

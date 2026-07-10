@@ -117,12 +117,12 @@
 
 | Decision | Implementation task(s) | Release evidence |
 |---|---|---|
-| PD-001 database provider | T020, T055, T071 | standard PostgreSQL URL, least privilege, no proprietary API |
-| PD-002 public brand/contact identity | T071, T074-T077 | owner approval; no invented logo/name |
-| PD-003 controller/contact/retention | T068-T073, T087 | non-placeholder privacy + approved procedure |
-| PD-004 canonical/GTM/Ads values | T038, T061-T065, T087 | metadata and GTM preview/publish readback |
-| PD-005 repository security capability | T013, T084, T087 | administrator readbacks or explicit campaign blocker |
-| PD-006 font license | T002, T027, T074, T082 | license record, Portuguese glyph/weight/performance evidence |
+| PD-001 database provider | T020, T055, T071 | **RESOLVED 2026-07-10:** Neon + isolated branches; server-only `DATABASE_URL` (`owner-decisions-2026-07-10.md`) |
+| PD-002 public brand/contact identity | T071, T074-T077 | **RESOLVED provisional:** Assistência Técnica Pro; Rafael Outor / `rafael.outor@gmail.com`; no logo |
+| PD-003 controller/contact/retention | T068-T073, T087 | **RESOLVED:** controller + `rafael.outor@gmail.com` + 180 days |
+| PD-004 canonical/GTM/Ads values | T038, T061-T065, T087 | **PARTIAL:** Preview=Vercel URL; campaign BLOCKED until real site URL + GTM |
+| PD-005 repository security capability | T013, T084, T087 | **PARTIAL:** GH scanners/CodeQL ok; Socket + branch-protection evidence in progress |
+| PD-006 font license | T002, T027, T074, T082 | **RESOLVED:** Atkinson Classic + Geologica via `next/font` |
 
 ## Coverage Statement
 
@@ -143,13 +143,18 @@ may not be rewritten.
 | Checkbox group ignores server-echoed values | MEDIUM | FR-022 | `fields.tsx` echo sync | T093 | **CLOSED** (re-review) |
 | Uppercase tracked “conceito” kickers | MEDIUM | NFR-013 | sentence-case badges | T094 | **CLOSED** (re-review) |
 | `output:"standalone"` vs `pnpm start` path | MEDIUM | plan CI, D-5 | `BUILD_STANDALONE=1` Docker-only | T095 | **CLOSED** (re-review) |
-| Atkinson classic vs “Next” undocumented | LOW | NFR-007, PD-006 | Dec-4 recorded; owner PD-006 pending | T096 | **CLOSED** (code) / PD-006 owner note |
+| Atkinson classic vs “Next” undocumented | LOW | NFR-007, PD-006 | Owner approved Classic + Geologica | T096 | **CLOSED** (PD-006 2026-07-10) |
 | Impeccable P1s remain after T074–T077 claim | HIGH | NFR-013, SC-013 | re-critique: no P0/P1 | T097 | **CLOSED** (re-review) |
 | FR-019 “twelve” vs data-model 13 slugs | INFO | FR-019 / data-model | Spec wording stale; code matches data-model | — (Codex/spec note) | OPEN (spec) |
-| CodeQL real CI run | BLOCKED | SEC-008/017, QA014 | Workflow ordered correctly; no project GH Actions run | external | BLOCKED |
-| Socket / Dependabot / Secret Scanning readbacks | BLOCKED | SEC-010-014, PD-005 | Config present; admin readbacks absent | external | BLOCKED |
-| LGPL `sharp`/libvips license HIGH | OWNER | SEC-007 license policy | Trivy license HIGH; Claude R-2 | owner policy | OPEN |
-| Parent Impeccable `settings.local.json` | OWNER | CIR-002 / D-1 | `/home/rafael/claude-code/.claude/settings.local.json` | owner | OPEN |
-| Production GTM/privacy/domain/DB | BLOCKED | PD-001–PD-004, SC-014 | Fail-closed placeholders | owner | BLOCKED |
+| CodeQL real CI run | BLOCKED→PASS | SEC-008/017, QA014 | https://github.com/routor/assistencia-tecnica/actions/runs/29117932826 (+ CI 29117934967) | external | **PASS** |
+| Dependabot / Secret Scanning / Push Protection | BLOCKED→PASS | SEC-010-014, PD-005 | Enabled on public repo `routor/assistencia-tecnica` | external | **PASS** |
+| Socket first-scan readback | BLOCKED | SEC-011, PD-005 | Install app only on this repo; evidence pending | owner/admin | **BLOCKED** |
+| Branch protection `main` | BLOCKED→PASS | PD-005 | Ruleset `Protect main` `18789276` — https://github.com/routor/assistencia-tecnica/rules/18789276 | owner/admin | **PASS** |
+| LGPL `sharp`/libvips license HIGH | OWNER | SEC-007 / CTR-005 | Exception accepted: `contracts/security-exception-r2-sharp-libvips.md` | owner | **ACCEPTED** (review 2026-10-10) |
+| Parent Impeccable `settings.local.json` | OWNER | CIR-002 / D-1 | Migrated hooks into `assistencia-tecnica/.claude/settings.local.json`; parent file removed | owner | **CLOSED** |
+| Privacy controller/contact/retention | BLOCKED | PD-003 | Owner values resolved; must be set in Vercel env | owner | **RESOLVED** (env wire-up) |
+| Production DB provider | BLOCKED | PD-001 | Neon selected; wire Preview/Prod `DATABASE_URL` | owner | **RESOLVED** (env wire-up) |
+| Canonical domain + GTM/GA4/Ads | BLOCKED | PD-004, SC-014 | Real values still absent; no invention | owner | **BLOCKED** (campaign) |
 
 **Re-review decision:** `APPROVED_WITH_NOTES` — see `reports/codex-qa-rereview-convergence-01-003-landing-assistencia-tecnica.md`.
+**Owner decisions:** `owner-decisions-2026-07-10.md` (campaign still BLOCKED on PD-004 + Socket readback).

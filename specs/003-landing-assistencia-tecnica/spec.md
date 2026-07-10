@@ -458,20 +458,26 @@ understand purposes and data categories, and find a documented channel/process f
 - Dark, technical visuals can drift into generic AI/cyberpunk/dashboard aesthetics; `DESIGN.md`,
   Impeccable evidence, and concept labels mitigate this risk.
 
-### Pending Owner Decisions Before Production (non-blocking for implementation)
+### Owner Decisions Before Production
 
-- **PD-001**: Choose Neon or Supabase PostgreSQL based on operational ownership; standard PostgreSQL
-  compatibility and a single server-only connection URL remain mandatory.
-- **PD-002**: Supply the final public brand/product name and authorized contact identity; until then,
-  neutral descriptive naming is used and no invented logo is allowed.
-- **PD-003**: Approve the public privacy-controller identity, contact/deletion channel, and retention
-  period before production.
-- **PD-004**: Supply the production canonical origin and GTM/GA4/Google Ads identifiers before
-  metadata/conversion validation.
-- **PD-005**: Confirm repository/organization entitlement and administrators for Socket, GitHub
-  Secret Scanning, Push Protection, branch protection, and Dependabot settings.
-- **PD-006**: Approve the final licensed type family after catalog/license and performance review;
-  the design brief defines selection criteria and forbids reflex-default families.
+Canonical record: `owner-decisions-2026-07-10.md` (2026-07-10, Rafael Outor).
+
+- **PD-001 (RESOLVED)**: Neon PostgreSQL with isolated Production/Preview branches; `DATABASE_URL`
+  server-only and distinct per Vercel environment; never `NEXT_PUBLIC_DATABASE_URL`.
+- **PD-002 (RESOLVED — provisional)**: Public name **Assistência Técnica Pro** (validation-only);
+  textual identity only (no invented logo); contact **Rafael Outor** / `rafael.outor@gmail.com`.
+- **PD-003 (RESOLVED)**: Controller “Rafael Outor, responsável pelo projeto Assistência Técnica Pro.”;
+  rights/deletion channel `rafael.outor@gmail.com`; `LEAD_RETENTION_DAYS=180` then delete/anonymize
+  per spec.
+- **PD-004 (PARTIAL)**: Do not invent domain/IDs; Preview uses real Vercel URL and stays
+  non-indexed; **campaign BLOCKED** until real `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_GTM_ID`;
+  GA4/Ads via GTM; consent mechanism mandatory.
+- **PD-005 (PARTIAL)**: Repo `routor/assistencia-tecnica`; Dependabot/Secret Scanning/Push
+  Protection/CodeQL evidenced; Socket app install + first-scan readback still required; `main`
+  branch protection per owner rules (PR required, 0 human approvals while solo maintainer, CI +
+  CodeQL required, up-to-date branch, conversation resolution, no force-push/delete).
+- **PD-006 (RESOLVED)**: Atkinson Hyperlegible Classic (body/UI) + Geologica (display) via
+  `next/font`; do not migrate to Atkinson Hyperlegible Next this stage.
 
 ## Explicit Exclusions
 
