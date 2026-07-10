@@ -1,0 +1,43 @@
+# Local TEST stack for the validation landing. NOT production.
+# Usage:
+#   docker compose up --build
+#   open http://localhost:3000/assistencia-tecnica
+#
+# The leads table is created automatically on first DB init from the committed migration SQL
+# (psql treats drizzle's `--> statement-breakpoint` lines as comments).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: local_test_pw
+      POSTGRES_DB: assistencia_tecnica
+    ports:
+      - "5433:5432"
+    volumes:
+      - at_pgdata:/var/lib/postgresql/data
+      - ./db/migrations/0000_create_leads.sql:/docker-entrypoint-initdb.d/0000_create_leads.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d assistencia_tecnica"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Server-only: the app connects to the Postgres service on the compose network.
+      DATABASE_URL: "postgresql://app_user:local_test_pw@db:5432/assistencia_tecnica?sslmode=disable"
+      # NEXT_PUBLIC_SITE_URL intentionally unset (canonical falls back to a relative path for local
+      # testing; the schema requires HTTPS, so a real value belongs to production).
+      # NEXT_PUBLIC_GTM_ID unset -> analytics disabled locally (form still works).
+      # PRIVACY_* / LEAD_RETENTION_DAYS unset -> privacy page stays in fail-closed "test" mode.
+    ports:
+      - "3000:3000"
+
+volumes:
+  at_pgdata:

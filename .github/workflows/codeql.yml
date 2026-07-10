@@ -1,0 +1,44 @@
+# Reusable CodeQL SAST workflow (SEC-008, SEC-009).
+# Called by ci.yml AFTER the Trivy gate, and also runs on default-branch push and a weekly schedule.
+# CodeQL is the primary JavaScript/TypeScript SAST (research R-006). Semgrep is the approved
+# documented fallback only if CodeQL cannot run.
+name: CodeQL
+
+on:
+  workflow_call: {}
+  push:
+    branches: [main]
+  schedule:
+    # Weekly, Monday 06:00 UTC.
+    - cron: "0 6 * * 1"
+
+# Least privilege by default; the job grants only what CodeQL requires.
+permissions: {}
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@b1722c1245f90604c2c348f9d1624af97ea8fc6e # v3.29.0
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@b1722c1245f90604c2c348f9d1624af97ea8fc6e # v3.29.0
+        with:
+          category: "/language:javascript-typescript"

@@ -1,0 +1,35 @@
+# pnpm supply-chain policy for this project.
+#
+# Build (postinstall) scripts are BLOCKED by default. Each package below is an
+# explicit, reviewed decision recorded in the execution report (SEC-002/SEC-011):
+#
+#   esbuild        allow  — native bundler binary used by vite/vitest/drizzle-kit
+#   sharp          allow  — Next.js image optimization; verified prebuilt binaries
+#   unrs-resolver  allow  — eslint-config-next import resolver native binary
+#   puppeteer      deny   — only pulled by impeccable's optional live-browser feature;
+#                           avoided to shrink supply-chain surface. Playwright provides
+#                           Chromium for E2E; Impeccable guidance commands do not need it.
+allowBuilds:
+  esbuild: true
+  puppeteer: false
+  sharp: true
+  unrs-resolver: true
+
+# Targeted, reviewed security overrides (SEC-005/SEC-007/SEC-018/SEC-019).
+# Each pins a KNOWN-PATCHED version of a transitive dependency flagged by `pnpm audit`.
+# These are minimal, in-range upgrades — NOT `npm audit fix --force` and NOT major bumps.
+#   tmp     GHSA-ph9p-34f9-6g65 (HIGH) + GHSA-52f5-9888-hmc6 (LOW)  via @lhci/cli (dev)
+#   postcss GHSA-7fh5-64p2-3v2j (MODERATE)                          via next
+#   uuid    (MODERATE)                                              via @lhci/cli (dev)
+#   esbuild GHSA-67mh-4wv8-2f99 (MODERATE, dev-server only)         via drizzle-kit>@esbuild-kit
+overrides:
+  tmp: ^0.2.6
+  postcss: ^8.5.10
+  uuid: ^11.1.1
+  "@esbuild-kit/core-utils>esbuild": ^0.25.0
+
+# impeccable@3.2.1 is a recently published tooling package intentionally allowed
+# despite pnpm's minimum-release-age heuristic (reviewed: Apache-2.0, no install
+# hooks, single established maintainer, signed tarball).
+minimumReleaseAgeExclude:
+  - impeccable@3.2.1

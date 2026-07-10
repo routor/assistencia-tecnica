@@ -1,0 +1,176 @@
+# Ordered security gate (constitution III, SEC-017, plan §Ordered CI, quickstart).
+#
+#   pnpm install --frozen-lockfile
+#     -> lint -> typecheck -> unit -> integration -> build
+#     -> pnpm audit --audit-level high
+#     -> Trivy (vuln,secret,misconfig HIGH,CRITICAL exit 1) + Trivy license scan
+#     -> CodeQL (job DEPENDS ON the Trivy gate)
+#     -> E2E + Lighthouse (job DEPENDS ON successful CodeQL)
+#     -> Claude execution report -> independent Codex review
+#
+# A later job MUST NOT report success when an earlier required gate failed: `needs:` enforces order.
+# All third-party actions are pinned to immutable commit SHAs. Least permissions + explicit timeouts.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Frozen, reproducible installs everywhere (SEC-004).
+  PNPM_VERSION: "11.11.0"
+  NODE_VERSION: "24"
+
+jobs:
+  # 1..7: lint -> typecheck -> unit -> integration -> build -> audit -> Trivy
+  build-and-scan:
+    name: Lint / Types / Tests / Build / Audit / Trivy
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: app_user
+          POSTGRES_PASSWORD: ci_only_disposable_password
+          POSTGRES_DB: assistencia_tecnica_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app_user -d assistencia_tecnica_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: "postgresql://app_user:ci_only_disposable_password@localhost:5432/assistencia_tecnica_test?sslmode=disable"
+      DATABASE_URL: "postgresql://app_user:ci_only_disposable_password@localhost:5432/assistencia_tecnica_test?sslmode=disable"
+      NEXT_PUBLIC_SITE_URL: "https://example.com"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: 1) Lint
+        run: pnpm lint
+
+      - name: 2) Typecheck
+        run: pnpm typecheck
+
+      - name: 3) Unit tests
+        run: pnpm test
+
+      - name: 4a) Apply migrations to test database
+        run: pnpm db:migrate
+
+      - name: 4b) Integration tests (PostgreSQL-backed)
+        run: pnpm test:integration
+
+      - name: 5) Production build
+        run: pnpm build
+
+      - name: 6) Dependency audit (high)
+        run: pnpm audit --audit-level high
+
+      - name: 7a) Trivy vuln/secret/misconfig (HIGH,CRITICAL, exit 1)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: false
+
+      - name: 7b) Trivy license scan (recorded; not auto-blocking)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: license
+          exit-code: "0"
+
+  # 8) CodeQL SAST — DEPENDS ON the Trivy gate (build-and-scan).
+  codeql:
+    name: CodeQL SAST
+    needs: build-and-scan
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    uses: ./.github/workflows/codeql.yml
+
+  # 9) E2E + Lighthouse — DEPENDS ON successful CodeQL.
+  e2e-and-lighthouse:
+    name: E2E (axe/responsive) + Lighthouse
+    needs: codeql
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: app_user
+          POSTGRES_PASSWORD: ci_only_disposable_password
+          POSTGRES_DB: assistencia_tecnica_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app_user -d assistencia_tecnica_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: "postgresql://app_user:ci_only_disposable_password@localhost:5432/assistencia_tecnica_test?sslmode=disable"
+      NEXT_PUBLIC_SITE_URL: "https://example.com"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Apply migrations
+        run: pnpm db:migrate
+
+      - name: 9a) E2E (Playwright + axe + responsive)
+        run: pnpm test:e2e
+
+      - name: 9b) Lighthouse CI (mobile thresholds)
+        run: pnpm test:lighthouse

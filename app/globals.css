@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+/*
+ * Design system "Registro de Bancada" (DESIGN.md). Dark petroleum-graphite neutrals carry all
+ * surfaces; a single restrained amber signal (< ~10% of view) marks the next action. All color
+ * pairs are measured for WCAG 2.2 AA (NFR-002) and verified with axe in E2E.
+ */
+@theme {
+  --color-bg: oklch(0.16 0.018 225);
+  --color-surface: oklch(0.205 0.021 225);
+  --color-surface-raised: oklch(0.25 0.023 225);
+  --color-surface-strong: oklch(0.31 0.025 225);
+
+  --color-ink: oklch(0.95 0.008 225);
+  --color-ink-2: oklch(0.76 0.018 225);
+  --color-ink-muted: oklch(0.66 0.018 225);
+
+  --color-line: oklch(0.38 0.025 225);
+  --color-line-strong: oklch(0.52 0.03 225);
+
+  --color-accent: oklch(0.79 0.16 84);
+  --color-accent-hover: oklch(0.84 0.15 84);
+  --color-accent-ink: oklch(0.2 0.035 84);
+
+  --color-danger: oklch(0.72 0.16 28);
+  --color-success: oklch(0.74 0.12 162);
+  --color-focus: oklch(0.86 0.17 84);
+
+  --font-display: var(--font-geologica), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-atkinson), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --spacing-section: clamp(72px, 10vw, 144px);
+  --spacing-gutter: clamp(20px, 4vw, 56px);
+
+  --container-content: 1200px;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Headings use the display family with balanced wrapping (DESIGN.md typography). */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  text-wrap: balance;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Visible focus everywhere (NFR-001). Amber focus ring on the dark surface. */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Skip link — visible on focus (NFR-001, semantic landmarks). */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  padding: 12px 18px;
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
+  border-radius: var(--radius-md);
+  font-weight: 650;
+  transition: top 150ms ease;
+}
+.skip-link:focus {
+  top: 12px;
+}
+
+.content-wrap {
+  width: 100%;
+  max-width: var(--container-content);
+  margin-inline: auto;
+  padding-inline: var(--spacing-gutter);
+}
+
+/* Motion is opt-in and never gates content visibility (NFR-003). */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

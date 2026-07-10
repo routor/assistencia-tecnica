@@ -1,0 +1,33 @@
+# Dependabot (SEC-010). Weekly updates for npm (pnpm) and GitHub Actions.
+# NO auto-merge: every update must pass tests, build, scanners, and Codex review before merge.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    versioning-strategy: "increase"
+    labels:
+      - "dependencies"
+      - "security-review-required"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "ci"
+      - "security-review-required"
+    commit-message:
+      prefix: "ci"
