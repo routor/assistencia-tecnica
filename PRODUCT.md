@@ -2,7 +2,9 @@
 
 ## Register
 
-brand
+**Assistência Técnica Pro** (provisional public name for validation; textual identity only — no
+invented logo). Authorized contact: Rafael Outor (`rafael.outor@gmail.com`). See
+`specs/003-landing-assistencia-tecnica/owner-decisions-2026-07-10.md` (PD-002).
 
 ## Platform
 
