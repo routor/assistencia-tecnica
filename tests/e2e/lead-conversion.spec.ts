@@ -59,6 +59,31 @@ test.describe("US2 conversion (FR-011..FR-029, SC-003/4/5)", () => {
     await expect(page.getByText(/é necessário aceitar o uso dos dados/i).first()).toBeVisible();
   });
 
+  test("preserves both steps after validation error and keeps segment for retry", async ({
+    page,
+  }) => {
+    await page.goto(LANDING);
+    await fillStep1(page, uniquePhone());
+    await page.getByRole("button", { name: /continuar/i }).click();
+    await fillStep2(page);
+    await page.getByRole("button", { name: /enviar e participar/i }).click();
+
+    await expect(page.getByText(/é necessário aceitar o uso dos dados/i).first()).toBeVisible();
+    await expect(page.getByText(/etapa 2 de 2/i)).toBeVisible();
+    await expect(page.getByLabel(/tamanho da equipe/i)).toHaveValue("2_3");
+    await expect(page.getByLabel(/aparelhos que entram por mês/i)).toHaveValue("31_100");
+    await expect(page.getByRole("checkbox", { name: /fotos na entrada/i })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: /status do reparo/i })).toBeChecked();
+    // Hidden step-1 values must survive the post-action form reset.
+    await expect(page.locator('select[name="segment"]')).toHaveValue("celulares_tablets");
+    await expect(page.locator('input[name="name"]')).toHaveValue("Fulano de Teste");
+    await expect(page.getByRole("checkbox", { name: /autorizo o uso dos meus dados/i })).toBeFocused();
+
+    await page.getByRole("checkbox", { name: /autorizo o uso dos meus dados/i }).check();
+    await page.getByRole("button", { name: /enviar e participar/i }).click();
+    await expect(page).toHaveURL(/\/obrigado\?vertical=assistencia-tecnica/);
+  });
+
   test("blocks advancing past step 1 when required fields are empty", async ({ page }) => {
     await page.goto(LANDING);
     await page.getByRole("link", { name: /quero participar do piloto/i }).first().click();

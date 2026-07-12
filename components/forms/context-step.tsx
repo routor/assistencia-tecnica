@@ -25,6 +25,10 @@ export function ContextStep({
   values: ActionValues;
 }) {
   const v = (k: string) => (typeof values[k] === "string" ? (values[k] as string) : undefined);
+  const checked = (k: string) => {
+    const raw = values[k];
+    return raw === "on" || raw === "true" || raw === "1";
+  };
   const priorityDefaults = Array.isArray(values.priority_features)
     ? (values.priority_features as string[])
     : [];
@@ -91,10 +95,14 @@ export function ContextStep({
 
       {/* Flattened: a divider (not a nested card) separates consent from the fields above. */}
       <div className="mt-2 grid gap-4 border-t border-line pt-6">
-        <CheckboxField name="interview_permission" defaultChecked={false}>
+        <CheckboxField name="interview_permission" defaultChecked={checked("interview_permission")}>
           Aceito ser contatado(a) para uma conversa rápida sobre a minha rotina (opcional).
         </CheckboxField>
-        <CheckboxField name="privacy_consent" error={errors.privacy_consent}>
+        <CheckboxField
+          name="privacy_consent"
+          error={errors.privacy_consent}
+          defaultChecked={checked("privacy_consent")}
+        >
           Autorizo o uso dos meus dados para esta pesquisa de validação e para contato sobre
           entrevista ou piloto futuro, conforme a{" "}
           <a
