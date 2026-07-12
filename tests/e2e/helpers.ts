@@ -36,8 +36,16 @@ export async function readDataLayer(page: Page): Promise<Array<Record<string, un
   return page.evaluate(() => {
     const w = window as unknown as { dataLayer?: unknown[] };
     return (w.dataLayer ?? []).map((e) => {
-      // Consent Mode pushes arrays via gtag(...args); funnel events push plain objects.
+      // Consent Mode: gtag() pushes Arguments; funnel events push plain objects.
       if (Array.isArray(e)) return [...e];
+      if (
+        e &&
+        typeof e === "object" &&
+        typeof (e as { length?: unknown }).length === "number" &&
+        "0" in e
+      ) {
+        return Array.from(e as unknown as ArrayLike<unknown>);
+      }
       if (e && typeof e === "object") return { ...(e as Record<string, unknown>) };
       return e as unknown as Record<string, unknown>;
     });

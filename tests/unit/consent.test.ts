@@ -16,11 +16,32 @@ import {
   toConsentModeSignals,
 } from "@/lib/consent";
 
+/** Normalize gtag Arguments / Array dataLayer entries into plain arrays. */
+function asList(entry: unknown): unknown[] | null {
+  if (Array.isArray(entry)) return entry;
+  if (
+    entry &&
+    typeof entry === "object" &&
+    typeof (entry as { length?: unknown }).length === "number" &&
+    "0" in (entry as object)
+  ) {
+    return Array.from(entry as ArrayLike<unknown>);
+  }
+  return null;
+}
+
+function consentCommands(dl: unknown[]): unknown[][] {
+  return dl
+    .map(asList)
+    .filter((entry): entry is unknown[] => Boolean(entry && entry[0] === "consent"));
+}
+
 describe("consent storage + Consent Mode mapping", () => {
   beforeEach(() => {
     document.cookie = `${CONSENT_COOKIE_NAME}=; Path=/; Max-Age=0`;
     __resetConsentRuntimeForTests();
-    delete (window as { dataLayer?: unknown[] }).dataLayer;
+    delete (window as { dataLayer?: unknown[]; gtag?: unknown }).dataLayer;
+    delete (window as { gtag?: unknown }).gtag;
     document.querySelectorAll("script[data-consertify-gtm]").forEach((n) => n.remove());
   });
   afterEach(() => {
@@ -94,7 +115,7 @@ describe("consent storage + Consent Mode mapping", () => {
     expect(parseConsentCookieValue(stale)).toBeNull();
   });
 
-  it("applies default denied then update, and loads GTM once", () => {
+  it("applies default denied then update via Arguments pushes, and loads GTM once", () => {
     (window as { dataLayer?: unknown[] }).dataLayer = [];
     const decision = acceptAllDecision();
     applyConsentMode(decision);
@@ -104,11 +125,16 @@ describe("consent storage + Consent Mode mapping", () => {
     expect(secondLoad).toBe(false);
 
     const dl = (window as { dataLayer: unknown[] }).dataLayer;
-    const consentCmds = dl.filter(
-      (entry) => Array.isArray(entry) && entry[0] === "consent",
-    ) as unknown[][];
+    const consentCmds = consentCommands(dl);
+    // Official gtag stub pushes Arguments, not a real Array.
+    expect(dl.some((entry) => Array.isArray(entry) && entry[0] === "consent")).toBe(false);
     expect(consentCmds.some((c) => c[1] === "default")).toBe(true);
     expect(consentCmds.some((c) => c[1] === "update")).toBe(true);
+    const defaults = consentCmds.filter((c) => c[1] === "default");
+    expect(defaults[0]?.[2]).toMatchObject({
+      ...DENIED_CONSENT_SIGNALS,
+      wait_for_update: 500,
+    });
     const update = consentCmds.find((c) => c[1] === "update");
     expect(update?.[2]).toEqual(toConsentModeSignals(decision));
     expect(document.querySelectorAll('script[data-consertify-gtm="GTM-TEST1234"]')).toHaveLength(1);
@@ -120,9 +146,9 @@ describe("consent storage + Consent Mode mapping", () => {
     loadGoogleTagManager("GTM-TEST1234");
     applyConsentMode(rejectOptionalDecision());
     expect(document.querySelectorAll("script[data-consertify-gtm]")).toHaveLength(1);
-    const updates = ((window as { dataLayer: unknown[] }).dataLayer.filter(
-      (entry) => Array.isArray(entry) && entry[0] === "consent" && entry[1] === "update",
-    ) as unknown[][]);
+    const updates = consentCommands((window as { dataLayer: unknown[] }).dataLayer).filter(
+      (entry) => entry[1] === "update",
+    );
     expect(updates.at(-1)?.[2]).toEqual(DENIED_CONSENT_SIGNALS);
   });
 });
