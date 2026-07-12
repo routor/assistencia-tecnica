@@ -1,7 +1,17 @@
 import { expect, test } from "@playwright/test";
-import { LANDING, expectNoSeriousA11yViolations, trackConsoleErrors } from "./helpers";
+import {
+  LANDING,
+  expectNoSeriousA11yViolations,
+  seedRejectedConsent,
+  trackConsoleErrors,
+} from "./helpers";
 
 test.describe("US1 landing — first viewport, structure, accessibility (FR-002..FR-006, NFR-001)", () => {
+  test.beforeEach(async ({ page }) => {
+    // Banner is covered by consent.spec; keep landing assertions focused on page chrome.
+    await seedRejectedConsent(page);
+  });
+
   test("first viewport shows audience, validation status, promise and CTA", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto(LANDING);

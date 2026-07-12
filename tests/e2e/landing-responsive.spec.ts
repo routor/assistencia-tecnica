@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { LANDING, expectNoSeriousA11yViolations } from "./helpers";
+import { LANDING, expectNoSeriousA11yViolations, seedRejectedConsent } from "./helpers";
 
 test.describe("US1 responsive / zoom / reduced-motion / asset fallback (NFR-003/4/12, SC-008)", () => {
+  test.beforeEach(async ({ page }) => {
+    await seedRejectedConsent(page);
+  });
+
   test("core content is usable at the current target viewport without horizontal scroll", async ({
     page,
   }) => {

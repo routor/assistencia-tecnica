@@ -1,5 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
-import { LANDING } from "./helpers";
+import { LANDING, seedRejectedConsent } from "./helpers";
 
 let counter = 0;
 function uniquePhone(): string {
@@ -27,6 +27,10 @@ async function fillStep2(page: Page) {
 }
 
 test.describe("US2 conversion (FR-011..FR-029, SC-003/4/5)", () => {
+  test.beforeEach(async ({ page }) => {
+    await seedRejectedConsent(page);
+  });
+
   test("completes a valid two-step submission and redirects to the thank-you state", async ({
     page,
   }) => {
