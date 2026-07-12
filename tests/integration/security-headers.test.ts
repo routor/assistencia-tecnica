@@ -49,6 +49,27 @@ describe("Content-Security-Policy (NFR-011, SEC-016, R-008)", () => {
     expect(csp).toContain("https://www.google-analytics.com");
   });
 
+  it("allows ad.doubleclick.net only in connect-src when GTM is enabled", () => {
+    const withGtm = parse(
+      buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: true }),
+    );
+    const withoutGtm = parse(
+      buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: false }),
+    );
+
+    const connect = withGtm["connect-src"] ?? "";
+    const img = withGtm["img-src"] ?? "";
+    const frame = withGtm["frame-src"] ?? "";
+
+    expect(connect.split(/\s+/)).toContain("https://ad.doubleclick.net");
+    expect(img.split(/\s+/)).not.toContain("https://ad.doubleclick.net");
+    expect(frame.split(/\s+/)).not.toContain("https://ad.doubleclick.net");
+    expect(withGtm["script-src"]).not.toContain("https://ad.doubleclick.net");
+
+    expect(withoutGtm["connect-src"]).toBe("'self'");
+    expect(withoutGtm["connect-src"]).not.toContain("ad.doubleclick.net");
+  });
+
   it("sets object-src none, frame-ancestors none, base-uri self, form-action self", () => {
     const d = parse(buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: true }));
     expect(d["object-src"]).toBe("'none'");

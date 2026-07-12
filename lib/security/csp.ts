@@ -15,6 +15,8 @@ const GTM = "https://www.googletagmanager.com";
 const GA = ["https://www.google-analytics.com", "https://region1.google-analytics.com"];
 const ADS = ["https://www.google.com", "https://googleads.g.doubleclick.net"];
 const ADS_FRAME = "https://td.doubleclick.net";
+/** Google Ads CCM collect endpoint (connect-src only; not needed for img/frame). */
+const ADS_CONNECT = "https://ad.doubleclick.net";
 
 export type CspOptions = {
   nonce: string;
@@ -25,7 +27,7 @@ export type CspOptions = {
 export function buildContentSecurityPolicy({ nonce, isDev, gtmEnabled }: CspOptions): string {
   const scriptExtra = isDev ? " 'unsafe-eval'" : "";
 
-  const connect = ["'self'", ...(gtmEnabled ? [GTM, ...GA, ...ADS] : [])];
+  const connect = ["'self'", ...(gtmEnabled ? [GTM, ...GA, ...ADS, ADS_CONNECT] : [])];
   const img = ["'self'", "data:", "blob:", ...(gtmEnabled ? [GTM, ...GA, ...ADS] : [])];
   const frame = gtmEnabled ? [GTM, ADS_FRAME] : ["'none'"];
 
