@@ -13,6 +13,8 @@
 // Minimal set of Google origins needed by GTM + GA4 + Google Ads.
 const GTM = "https://www.googletagmanager.com";
 const GA = ["https://www.google-analytics.com", "https://region1.google-analytics.com"];
+/** GA4 g/collect endpoint (connect-src only; not needed for img/frame). */
+const GA_CONNECT = ["https://analytics.google.com"];
 const ADS = ["https://www.google.com", "https://googleads.g.doubleclick.net"];
 const ADS_FRAME = "https://td.doubleclick.net";
 /** Google Ads CCM / conversion endpoints (connect-src only; not needed for img/frame). */
@@ -20,6 +22,8 @@ const ADS_CONNECT = [
   "https://ad.doubleclick.net",
   "https://www.googleadservices.com",
 ];
+/** Google Ads / GA audiences pixel on BR ccTLD (img-src only). */
+const ADS_IMG = ["https://www.google.com.br"];
 
 export type CspOptions = {
   nonce: string;
@@ -30,8 +34,16 @@ export type CspOptions = {
 export function buildContentSecurityPolicy({ nonce, isDev, gtmEnabled }: CspOptions): string {
   const scriptExtra = isDev ? " 'unsafe-eval'" : "";
 
-  const connect = ["'self'", ...(gtmEnabled ? [GTM, ...GA, ...ADS, ...ADS_CONNECT] : [])];
-  const img = ["'self'", "data:", "blob:", ...(gtmEnabled ? [GTM, ...GA, ...ADS] : [])];
+  const connect = [
+    "'self'",
+    ...(gtmEnabled ? [GTM, ...GA, ...GA_CONNECT, ...ADS, ...ADS_CONNECT] : []),
+  ];
+  const img = [
+    "'self'",
+    "data:",
+    "blob:",
+    ...(gtmEnabled ? [GTM, ...GA, ...ADS, ...ADS_IMG] : []),
+  ];
   const frame = gtmEnabled ? [GTM, ADS_FRAME] : ["'none'"];
 
   const directives: Record<string, string> = {
