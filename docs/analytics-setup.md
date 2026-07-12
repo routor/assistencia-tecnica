@@ -5,12 +5,36 @@ fixed, allowlisted event vocabulary to `dataLayer`; GTM/GA4/Ads are configured *
 respective consoles. **No real container/measurement/conversion IDs are committed** — they are
 supplied via `NEXT_PUBLIC_GTM_ID` and the external consoles before campaign release (PD-004).
 
+## 0. Cookie consent (Basic Consent Mode v2) — required before GTM in production
+
+The site ships a first-party CMP (no external CMP SDK):
+
+| Item | Value |
+|---|---|
+| Cookie name | `consertify_consent` |
+| Contents | `version`, `analytics` (bool), `advertising` (bool), `updatedAt` (unix seconds) |
+| Version constant | `COOKIE_CONSENT_VERSION` in `lib/consent/constants.ts` |
+| Max-Age | 180 days (technical preference retention; not a legal claim) |
+| Attributes | `Path=/`; `SameSite=Lax`; `Secure` on HTTPS; **not** HttpOnly (client CMP must read/write) |
+| Default Consent Mode | all of `analytics_storage`, `ad_storage`, `ad_user_data`, `ad_personalization` = `denied` |
+| Analytics grant | `analytics_storage=granted` only |
+| Advertising grant | `ad_storage`, `ad_user_data`, `ad_personalization` = `granted` |
+| GTM load rule | load **only** if Analytics and/or Advertising was granted; never before a choice; never after reject-all |
+
+Order: read persisted choice → apply Consent Mode → load GTM only if an optional category is granted
+→ on later changes, `consent update` and keep revoked categories blocked. Rejecting optional cookies
+must not break the lead form.
+
+**Do not set `NEXT_PUBLIC_GTM_ID` in Production until this CMP path is validated.** Publishing the
+GTM container and wiring GA4/Ads tags remains a separate manual step.
+
 ## 1. Container
 
 - Set `NEXT_PUBLIC_GTM_ID` (format `GTM-XXXXXXX`) in the environment. When empty, the GTM loader is
   not rendered and analytics is silently disabled (the form still works).
-- The loader is a nonce'd, async inline bootstrap (`components/analytics/google-tag-manager.tsx`).
-  The CSP already allows the required Google origins **only when GTM is enabled** (see `lib/security/csp.ts`).
+- Runtime load happens in `lib/consent/consent-mode.ts` after an applicable grant (Basic mode). CSP
+  still allows Google origins **only when GTM is enabled** (see `lib/security/csp.ts`). Trust for the
+  injected `gtm.js` relies on `'strict-dynamic'` from the nonce'd Next.js runtime.
 
 ## 2. dataLayer events (the only source of truth)
 
@@ -44,11 +68,14 @@ The app pushes exactly these nine events; unknown events/properties are dropped:
   `ce_lead_submit_error`, `ce_thank_you_view`.
 
 **Tags**:
-- **GA4 Configuration** tag (Measurement ID `G-XXXXXXX`) on `landing_view` (or All Pages).
+- **GA4 Configuration** tag (Measurement ID `G-XXXXXXX`) on `landing_view` (or All Pages), respecting
+  Consent Mode (`analytics_storage`).
 - **GA4 Event** tags mapping each dataLayer event to a GA4 event of the same name, passing only the
   approved properties as event parameters.
 - **Google Ads Conversion** tag fired **only** on `ce_lead_submit_success` (conversion ID/label from
-  the Ads console). It must NOT fire on a thank-you pageview/URL.
+  the Ads console), respecting Consent Mode ad signals. It must NOT fire on a thank-you pageview/URL.
+
+Enable Consent Mode in the GTM container so tags honor `analytics_storage` / ad signals.
 
 ## 4. GA4 → reporting
 
@@ -61,13 +88,22 @@ The app pushes exactly these nine events; unknown events/properties are dropped:
 ## 5. Prohibited data (never send)
 
 Name, business name, phone/WhatsApp, email, city, state, lead/database ID, **raw `gclid`**, any open
-or selected answer (segment, bottleneck, features, price…), consent detail, IP, fingerprint, error
-stack, SQL, and full form/action objects (CTR-002 §Forbidden). Only `gclid_present` (boolean) is
-allowed, never the value.
+or selected answer (segment, bottleneck, features, price…), form consent detail, cookie-preference
+PII (there should be none), IP, fingerprint, error stack, SQL, and full form/action objects
+(CTR-002 §Forbidden). Only `gclid_present` (boolean) is allowed, never the value.
 
 ## 6. Preview & readback (before campaign release)
 
+- Confirm the CMP: first visit shows the banner; reject keeps GTM unloaded; accept applies the
+  expected Consent Mode signals; preferences persist and can be revoked.
 - Use GTM Preview to confirm each event fires once with only approved parameters and no PII.
-- Confirm the Ads conversion fires only on `lead_submit_success`.
+- Confirm the Ads conversion fires only on `lead_submit_success` and only with ad consent granted.
 - Record (without secrets) the container/measurement/conversion IDs' presence and the preview
   result. Missing IDs keep the campaign gate **BLOCKED** — do not hardcode placeholders as real.
+
+## 7. Revocation limits (honest)
+
+Updating preferences calls Consent Mode `update` and blocks new hits for revoked categories. If GTM
+already loaded in the page session, the script may remain in memory; third-party cookies set by
+Google cannot always be deleted from first-party code. Do not claim retroactive deletion of data
+already sent.

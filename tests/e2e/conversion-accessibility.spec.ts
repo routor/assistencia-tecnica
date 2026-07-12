@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { LANDING, expectNoSeriousA11yViolations } from "./helpers";
+import { LANDING, expectNoSeriousA11yViolations, seedRejectedConsent } from "./helpers";
 
 test.describe("US2 conversion accessibility (NFR-001..004, SC-008)", () => {
+  test.beforeEach(async ({ page }) => {
+    await seedRejectedConsent(page);
+  });
+
   test("the form region has no serious/critical axe violations (both steps)", async ({ page }) => {
     await page.goto(LANDING);
     await expectNoSeriousA11yViolations(page, "form step 1");

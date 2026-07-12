@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import { CookiePreferencesTrigger } from "@/components/consent/cookie-preferences-trigger";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/constants";
 import { getPrivacyPolicyConfig } from "@/lib/env";
 import { siteRobots } from "@/lib/seo/site-robots";
@@ -57,10 +58,12 @@ export function PrivacyContent({ config }: { config: PrivacyConfig }) {
             Para que usamos seus dados
           </h2>
           <p className="mt-3 text-ink-2">
-            Este é um projeto em validação. Usamos os dados apenas para pesquisa sobre a demanda,
-            para eventual contato sobre uma entrevista e para convidar, no futuro, para um piloto.
-            Não vendemos, não usamos para publicidade de terceiros e não coletamos dados dos
-            aparelhos ou dos clientes da sua assistência.
+            Este é um projeto em validação. Usamos os dados do cadastro apenas para pesquisa sobre a
+            demanda, para eventual contato sobre uma entrevista e para convidar, no futuro, para um
+            piloto. Não vendemos esses dados. Não coletamos dados dos aparelhos ou dos clientes da
+            sua assistência. Medição de analytics/anúncios, quando autorizada nas preferências de
+            cookies, é tratada na seção de cookies abaixo e permanece sem dados pessoais do
+            formulário.
           </p>
         </section>
 
@@ -87,9 +90,61 @@ export function PrivacyContent({ config }: { config: PrivacyConfig }) {
             Consentimento
           </h2>
           <p className="mt-3 text-ink-2">
-            O uso dos dados depende do seu aceite explícito no formulário, que nunca vem marcado por
-            padrão. Aceitar uma conversa é opcional e separado do consentimento para guardar o
-            cadastro.
+            O uso dos dados do cadastro depende do seu aceite explícito no formulário, que nunca vem
+            marcado por padrão. Aceitar uma conversa é opcional e separado do consentimento para
+            guardar o cadastro. Esse aceite do formulário não autoriza cookies de analytics ou
+            publicidade — essas escolhas são feitas no banner ou em Preferências de cookies.
+          </p>
+        </section>
+
+        <section aria-labelledby="cookies" className="mt-8">
+          <h2 id="cookies" className="text-2xl font-semibold text-ink">
+            Cookies e tecnologias semelhantes
+          </h2>
+          <p className="mt-3 text-ink-2">
+            Usamos um controle próprio de preferências (sem CMP de terceiros). As categorias são:
+          </p>
+          <dl className="mt-3 space-y-3">
+            <div>
+              <dt className="font-semibold text-ink">Necessários</dt>
+              <dd className="text-ink-2">
+                Precisos para o site funcionar com segurança e para lembrar a sua escolha de cookies.
+                Ficam sempre ativos. O registro da escolha fica em um cookie first-party
+                (`consertify_consent`), com versão da política de cookies, as opções de Analytics e
+                Publicidade, e um carimbo técnico de atualização — sem nome, e-mail, telefone ou
+                respostas do formulário.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-ink">Analytics (opcional)</dt>
+              <dd className="text-ink-2">
+                Se você autorizar, podemos medir o funil de forma agregada (por exemplo com Google
+                Analytics 4 via Google Tag Manager), ainda sem enviar dados pessoais do cadastro.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-ink">Publicidade (opcional)</dt>
+              <dd className="text-ink-2">
+                Se você autorizar, podemos medir conversões de anúncios com tecnologias Google
+                (Tag Manager / Google Ads). Não vendemos os seus dados e não usamos o cadastro para
+                publicidade de terceiros fora desse contexto de medição autorizado.
+              </dd>
+            </div>
+          </dl>
+          <p className="mt-3 text-ink-2">
+            Antes da sua escolha, e se você rejeitar as categorias opcionais, o Google Tag Manager
+            não é carregado. Você pode alterar ou revogar a escolha a qualquer momento em
+            Preferências de cookies (no rodapé) ou reabrindo o painel. Se a versão da política de
+            cookies mudar, pedimos uma nova escolha. A validade técnica do cookie de preferência é
+            de 180 dias.
+          </p>
+          <p className="mt-3 text-ink-2">
+            Revogar uma categoria atualiza o Consent Mode e impede novos disparos daquela categoria.
+            Tags ou cookies já carregados pelo Google podem ter limitações técnicas de remoção
+            imediata; não prometemos apagar retroativamente dados já enviados antes da revogação.
+          </p>
+          <p className="mt-3">
+            <CookiePreferencesTrigger className="text-ink-2 underline underline-offset-4 hover:text-ink" />
           </p>
         </section>
 
@@ -98,8 +153,11 @@ export function PrivacyContent({ config }: { config: PrivacyConfig }) {
             Limites da análise (analytics)
           </h2>
           <p className="mt-3 text-ink-2">
-            Medimos o funil de forma agregada e sem dados pessoais. Nunca enviamos nome, WhatsApp,
-            e-mail, nome do negócio ou suas respostas para ferramentas de análise ou de anúncios.
+            Medimos o funil de forma agregada e sem dados pessoais do formulário. Nunca enviamos
+            nome, WhatsApp, e-mail, nome do negócio ou suas respostas para ferramentas de análise ou
+            de anúncios. Analytics e publicidade só entram em operação depois da sua autorização
+            explícita nas preferências de cookies; rejeitar cookies opcionais não impede o envio do
+            cadastro de interesse.
           </p>
         </section>
 

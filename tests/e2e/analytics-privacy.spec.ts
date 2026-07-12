@@ -1,5 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
-import { LANDING, readDataLayer, seedDataLayer } from "./helpers";
+import { LANDING, readDataLayer, seedDataLayer, seedRejectedConsent } from "./helpers";
 
 let counter = 0;
 const uniquePhone = () => {
@@ -27,6 +27,10 @@ async function completeForm(page: Page, phone: string) {
 }
 
 test.describe("US3 analytics privacy & GTM failure isolation (NFR-010, FR-034, SC-007)", () => {
+  test.beforeEach(async ({ page }) => {
+    await seedRejectedConsent(page);
+  });
+
   test("no PII, open answers, or raw gclid appear anywhere in the dataLayer", async ({ page }) => {
     await seedDataLayer(page);
     await page.goto(`${LANDING}?utm_source=google&gclid=RAWCLICK999`);

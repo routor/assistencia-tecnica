@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { ThankYouTracker } from "@/components/analytics/thank-you-tracker";
+import { CookiePreferencesTrigger } from "@/components/consent/cookie-preferences-trigger";
 import { VERTICAL } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -51,6 +52,7 @@ export default async function ObrigadoPage({
           <a href="/privacidade" className="text-ink-2 underline underline-offset-4 hover:text-ink">
             Como usamos seus dados
           </a>
+          <CookiePreferencesTrigger className="text-ink-2 underline underline-offset-4 hover:text-ink" />
         </div>
       </div>
       {supported ? <ThankYouTracker /> : null}

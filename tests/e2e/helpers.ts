@@ -32,11 +32,16 @@ export async function expectNoSeriousA11yViolations(page: Page, context?: string
 }
 
 /** Capture the analytics dataLayer as pushed by the app (US3). */
-export async function readDataLayer(page: Page): Promise<Array<Record<string, unknown>>> {
+export async function readDataLayer(page: Page): Promise<Array<Record<string, unknown> | unknown[]>> {
   return page.evaluate(() => {
-    const w = window as unknown as { dataLayer?: Array<Record<string, unknown>> };
-    return (w.dataLayer ?? []).map((e) => ({ ...e }));
-  });
+    const w = window as unknown as { dataLayer?: unknown[] };
+    return (w.dataLayer ?? []).map((e) => {
+      // Consent Mode pushes arrays via gtag(...args); funnel events push plain objects.
+      if (Array.isArray(e)) return [...e];
+      if (e && typeof e === "object") return { ...(e as Record<string, unknown>) };
+      return e as unknown as Record<string, unknown>;
+    });
+  }) as Promise<Array<Record<string, unknown> | unknown[]>>;
 }
 
 /** Ensure a dataLayer array exists before GTM would (so app pushes are captured even with GTM off). */
@@ -45,4 +50,70 @@ export async function seedDataLayer(page: Page) {
     (window as unknown as { dataLayer: unknown[] }).dataLayer =
       (window as unknown as { dataLayer?: unknown[] }).dataLayer ?? [];
   });
+}
+
+/**
+ * Persist a reject-optional choice before navigation so the banner stays closed and GTM stays
+ * unloaded in specs that are not about the CMP itself. Uses context cookies so SSR also sees it.
+ */
+export async function seedRejectedConsent(page: Page) {
+  const value = encodeURIComponent(
+    JSON.stringify({
+      version: "2026-07-12",
+      analytics: false,
+      advertising: false,
+      updatedAt: 1,
+    }),
+  );
+  await page.context().addCookies([
+    {
+      name: "consertify_consent",
+      value,
+      domain: "127.0.0.1",
+      path: "/",
+    },
+  ]);
+}
+
+export async function seedGrantedConsent(
+  page: Page,
+  prefs: { analytics: boolean; advertising: boolean },
+) {
+  const value = encodeURIComponent(
+    JSON.stringify({
+      version: "2026-07-12",
+      analytics: prefs.analytics,
+      advertising: prefs.advertising,
+      updatedAt: 1,
+    }),
+  );
+  await page.context().addCookies([
+    {
+      name: "consertify_consent",
+      value,
+      domain: "127.0.0.1",
+      path: "/",
+    },
+  ]);
+}
+
+export async function readConsentCookie(page: Page): Promise<Record<string, unknown> | null> {
+  return page.evaluate(() => {
+    const match = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("consertify_consent="));
+    if (!match) return null;
+    try {
+      return JSON.parse(decodeURIComponent(match.slice("consertify_consent=".length))) as Record<
+        string,
+        unknown
+      >;
+    } catch {
+      return null;
+    }
+  });
+}
+
+export async function gtmScriptCount(page: Page): Promise<number> {
+  return page.locator('script[data-consertify-gtm], script[src*="googletagmanager.com/gtm.js"]').count();
 }

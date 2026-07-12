@@ -1,5 +1,5 @@
 import { type Page, expect, test } from "@playwright/test";
-import { LANDING, readDataLayer, seedDataLayer } from "./helpers";
+import { LANDING, readDataLayer, seedDataLayer, seedRejectedConsent } from "./helpers";
 
 let counter = 0;
 const uniquePhone = () => {
@@ -26,10 +26,27 @@ async function completeForm(page: Page, phone: string) {
   await page.getByRole("button", { name: /enviar e participar/i }).click();
 }
 
-const names = (dl: Array<Record<string, unknown>>) =>
-  dl.map((e) => e.event).filter(Boolean);
+const names = (dl: Array<Record<string, unknown> | unknown[]>) =>
+  dl
+    .map((e) =>
+      e && typeof e === "object" && !Array.isArray(e)
+        ? (e as Record<string, unknown>).event
+        : undefined,
+    )
+    .filter(Boolean);
+
+function eventObjects(dl: Array<Record<string, unknown> | unknown[]>) {
+  return dl.filter(
+    (e): e is Record<string, unknown> => Boolean(e) && typeof e === "object" && !Array.isArray(e),
+  );
+}
 
 test.describe("US3 analytics events & cardinality (CTR-002, FR-031..FR-033, SC-006)", () => {
+  test.beforeEach(async ({ page }) => {
+    // Keep the CMP banner closed so funnel assertions stay focused on dataLayer events.
+    await seedRejectedConsent(page);
+  });
+
   test("emits landing_view once with attribution, and gclid_present (never raw gclid)", async ({
     page,
   }) => {
@@ -37,10 +54,10 @@ test.describe("US3 analytics events & cardinality (CTR-002, FR-031..FR-033, SC-0
     await page.goto(`${LANDING}?utm_source=google&utm_medium=cpc&gclid=RAWCLICK123`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect
-      .poll(async () => (await readDataLayer(page)).some((e) => e.event === "landing_view"))
+      .poll(async () => eventObjects(await readDataLayer(page)).some((e) => e.event === "landing_view"))
       .toBe(true);
     const dl = await readDataLayer(page);
-    const views = dl.filter((e) => e.event === "landing_view");
+    const views = eventObjects(dl).filter((e) => e.event === "landing_view");
     expect(views).toHaveLength(1);
     expect(views[0]!.utm_source).toBe("google");
     expect(views[0]!.gclid_present).toBe(true);
@@ -91,7 +108,9 @@ test.describe("US3 analytics events & cardinality (CTR-002, FR-031..FR-033, SC-0
     await seedDataLayer(page);
     await page.goto("/obrigado?vertical=assistencia-tecnica");
     await expect
-      .poll(async () => (await readDataLayer(page)).some((e) => e.event === "thank_you_view"))
+      .poll(async () =>
+        eventObjects(await readDataLayer(page)).some((e) => e.event === "thank_you_view"),
+      )
       .toBe(true);
     const evNames = names(await readDataLayer(page));
     expect(evNames).toContain("thank_you_view");

@@ -1,3 +1,4 @@
+import { CookiePreferencesTrigger } from "@/components/consent/cookie-preferences-trigger";
 import { PRIVACY_PATH } from "@/lib/constants";
 
 /**
@@ -27,6 +28,7 @@ export function Footer() {
           >
             Contato e remoção de dados
           </a>
+          <CookiePreferencesTrigger className="text-sm text-ink-2 underline underline-offset-4 hover:text-ink" />
           <a href="#formulario" className="text-ink-2 underline underline-offset-4 hover:text-ink">
             Participar do piloto
           </a>
