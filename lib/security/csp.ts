@@ -17,13 +17,17 @@ const GA = ["https://www.google-analytics.com", "https://region1.google-analytic
 const GA_CONNECT = ["https://analytics.google.com"];
 const ADS = ["https://www.google.com", "https://googleads.g.doubleclick.net"];
 const ADS_FRAME = "https://td.doubleclick.net";
-/** Google Ads CCM / conversion endpoints (connect-src only; not needed for img/frame). */
+/** Google Ads CCM / conversion endpoints (connect-src; googleadservices also needed in img-src). */
 const ADS_CONNECT = [
   "https://ad.doubleclick.net",
   "https://www.googleadservices.com",
 ];
-/** Google Ads / GA audiences pixel on BR ccTLD (img-src only). */
-const ADS_IMG = ["https://www.google.com.br"];
+/**
+ * Google Ads pixels (img-src only extras):
+ * - www.google.com.br — ga-audiences on BR ccTLD
+ * - www.googleadservices.com — CCM conversion beacon (/ccm/conversion/…)
+ */
+const ADS_IMG = ["https://www.google.com.br", "https://www.googleadservices.com"];
 
 export type CspOptions = {
   nonce: string;

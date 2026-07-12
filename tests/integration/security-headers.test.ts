@@ -49,7 +49,7 @@ describe("Content-Security-Policy (NFR-011, SEC-016, R-008)", () => {
     expect(csp).toContain("https://www.google-analytics.com");
   });
 
-  it("allows ad.doubleclick.net and googleadservices.com only in connect-src when GTM is enabled", () => {
+  it("allows ad.doubleclick.net only in connect-src when GTM is enabled", () => {
     const withGtm = parse(
       buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: true }),
     );
@@ -57,23 +57,38 @@ describe("Content-Security-Policy (NFR-011, SEC-016, R-008)", () => {
       buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: false }),
     );
 
-    const connect = withGtm["connect-src"] ?? "";
-    const img = withGtm["img-src"] ?? "";
-    const frame = withGtm["frame-src"] ?? "";
-    const connectTokens = connect.split(/\s+/);
+    const connectTokens = (withGtm["connect-src"] ?? "").split(/\s+/);
+    const imgTokens = (withGtm["img-src"] ?? "").split(/\s+/);
+    const frameTokens = (withGtm["frame-src"] ?? "").split(/\s+/);
 
     expect(connectTokens).toContain("https://ad.doubleclick.net");
-    expect(connectTokens).toContain("https://www.googleadservices.com");
-    expect(img.split(/\s+/)).not.toContain("https://ad.doubleclick.net");
-    expect(img.split(/\s+/)).not.toContain("https://www.googleadservices.com");
-    expect(frame.split(/\s+/)).not.toContain("https://ad.doubleclick.net");
-    expect(frame.split(/\s+/)).not.toContain("https://www.googleadservices.com");
+    expect(imgTokens).not.toContain("https://ad.doubleclick.net");
+    expect(frameTokens).not.toContain("https://ad.doubleclick.net");
     expect(withGtm["script-src"]).not.toContain("https://ad.doubleclick.net");
-    expect(withGtm["script-src"]).not.toContain("https://www.googleadservices.com");
 
     expect(withoutGtm["connect-src"]).toBe("'self'");
     expect(withoutGtm["connect-src"]).not.toContain("ad.doubleclick.net");
+  });
+
+  it("allows googleadservices.com in connect-src and img-src when GTM is enabled", () => {
+    const withGtm = parse(
+      buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: true }),
+    );
+    const withoutGtm = parse(
+      buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: false }),
+    );
+
+    const connectTokens = (withGtm["connect-src"] ?? "").split(/\s+/);
+    const imgTokens = (withGtm["img-src"] ?? "").split(/\s+/);
+    const frameTokens = (withGtm["frame-src"] ?? "").split(/\s+/);
+
+    expect(connectTokens).toContain("https://www.googleadservices.com");
+    expect(imgTokens).toContain("https://www.googleadservices.com");
+    expect(frameTokens).not.toContain("https://www.googleadservices.com");
+    expect(withGtm["script-src"]).not.toContain("https://www.googleadservices.com");
+
     expect(withoutGtm["connect-src"]).not.toContain("googleadservices.com");
+    expect(withoutGtm["img-src"]).not.toContain("googleadservices.com");
   });
 
   it("allows analytics.google.com only in connect-src when GTM is enabled", () => {
