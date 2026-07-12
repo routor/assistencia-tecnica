@@ -76,6 +76,48 @@ describe("Content-Security-Policy (NFR-011, SEC-016, R-008)", () => {
     expect(withoutGtm["connect-src"]).not.toContain("googleadservices.com");
   });
 
+  it("allows analytics.google.com only in connect-src when GTM is enabled", () => {
+    const withGtm = parse(
+      buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: true }),
+    );
+    const withoutGtm = parse(
+      buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: false }),
+    );
+
+    const connectTokens = (withGtm["connect-src"] ?? "").split(/\s+/);
+    const imgTokens = (withGtm["img-src"] ?? "").split(/\s+/);
+    const frameTokens = (withGtm["frame-src"] ?? "").split(/\s+/);
+
+    expect(connectTokens).toContain("https://analytics.google.com");
+    expect(imgTokens).not.toContain("https://analytics.google.com");
+    expect(frameTokens).not.toContain("https://analytics.google.com");
+    expect(withGtm["script-src"]).not.toContain("https://analytics.google.com");
+
+    expect(withoutGtm["connect-src"]).not.toContain("analytics.google.com");
+    expect(withoutGtm["img-src"]).not.toContain("analytics.google.com");
+  });
+
+  it("allows www.google.com.br only in img-src when GTM is enabled", () => {
+    const withGtm = parse(
+      buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: true }),
+    );
+    const withoutGtm = parse(
+      buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: false }),
+    );
+
+    const connectTokens = (withGtm["connect-src"] ?? "").split(/\s+/);
+    const imgTokens = (withGtm["img-src"] ?? "").split(/\s+/);
+    const frameTokens = (withGtm["frame-src"] ?? "").split(/\s+/);
+
+    expect(imgTokens).toContain("https://www.google.com.br");
+    expect(connectTokens).not.toContain("https://www.google.com.br");
+    expect(frameTokens).not.toContain("https://www.google.com.br");
+    expect(withGtm["script-src"]).not.toContain("https://www.google.com.br");
+
+    expect(withoutGtm["img-src"]).not.toContain("google.com.br");
+    expect(withoutGtm["connect-src"]).not.toContain("google.com.br");
+  });
+
   it("sets object-src none, frame-ancestors none, base-uri self, form-action self", () => {
     const d = parse(buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: true }));
     expect(d["object-src"]).toBe("'none'");
