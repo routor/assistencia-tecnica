@@ -12,7 +12,11 @@ type ConsentWindow = Window & {
   gtag?: GtagCommand;
   __consertifyConsentApplied?: string;
   __consertifyGtmLoaded?: string;
+  __consertifyLastDecision?: ConsentDecision;
 };
+
+/** ms Google tags should wait for a CMP update before assuming the default (Basic CM). */
+const CONSENT_WAIT_FOR_UPDATE_MS = 500;
 
 function getConsentWindow(): ConsentWindow | null {
   if (typeof window === "undefined") return null;
@@ -22,15 +26,21 @@ function getConsentWindow(): ConsentWindow | null {
 /**
  * Ensure `dataLayer` + `gtag` exist locally. This does NOT load GTM or contact Google.
  * Safe to call before any authorization (queue stays first-party until gtm.js loads).
+ *
+ * Uses the official `arguments` object (not a rest-parameter Array). Google's gtag/GTM
+ * consent processor historically keys off Arguments-like pushes from `gtag()`; a plain
+ * Array can be left unapplied (`gcd=…l…` = signal not set) while cookies still write.
  */
 export function ensureGtagQueue(): GtagCommand | null {
   const w = getConsentWindow();
   if (!w) return null;
   w.dataLayer = Array.isArray(w.dataLayer) ? w.dataLayer : [];
   if (typeof w.gtag !== "function") {
-    w.gtag = function gtag(...args: unknown[]) {
-      w.dataLayer!.push(args);
-    };
+    w.gtag = function gtag(this: void) {
+      // Mirror Google's stub: dataLayer.push(arguments) — not [...args].
+      // eslint-disable-next-line prefer-rest-params -- Consent Mode requires Arguments
+      w.dataLayer!.push(arguments);
+    } as GtagCommand;
   }
   return w.gtag;
 }
@@ -46,14 +56,28 @@ export function applyConsentMode(decision: ConsentDecision): void {
 
   const signals = toConsentModeSignals(decision);
   const key = `${decision.version}:${decision.analytics}:${decision.advertising}:${decision.updatedAt}`;
+  w.__consertifyLastDecision = decision;
 
   if (!w.__consertifyConsentApplied) {
-    gtag("consent", "default", { ...DENIED_CONSENT_SIGNALS });
+    gtag("consent", "default", {
+      ...DENIED_CONSENT_SIGNALS,
+      wait_for_update: CONSENT_WAIT_FOR_UPDATE_MS,
+    });
     gtag("consent", "update", { ...signals });
   } else if (w.__consertifyConsentApplied !== key) {
     gtag("consent", "update", { ...signals });
   }
   w.__consertifyConsentApplied = key;
+}
+
+/** Re-assert the latest decision after gtm.js boots (queued consent can be missed). */
+function reassertConsentAfterGtmLoad(): void {
+  const w = getConsentWindow();
+  const decision = w?.__consertifyLastDecision;
+  if (!w || !decision) return;
+  const gtag = ensureGtagQueue();
+  if (!gtag) return;
+  gtag("consent", "update", { ...toConsentModeSignals(decision) });
 }
 
 /**
@@ -77,6 +101,7 @@ export function loadGoogleTagManager(gtmId: string): boolean {
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
   script.dataset.consertifyGtm = gtmId;
+  script.addEventListener("load", reassertConsentAfterGtmLoad, { once: true });
   document.head.appendChild(script);
   w.__consertifyGtmLoaded = gtmId;
   return true;
@@ -103,4 +128,5 @@ export function __resetConsentRuntimeForTests(): void {
   if (!w) return;
   delete w.__consertifyConsentApplied;
   delete w.__consertifyGtmLoaded;
+  delete w.__consertifyLastDecision;
 }

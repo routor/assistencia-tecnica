@@ -112,7 +112,7 @@ describe("Content-Security-Policy (NFR-011, SEC-016, R-008)", () => {
     expect(withoutGtm["img-src"]).not.toContain("analytics.google.com");
   });
 
-  it("allows www.google.com.br only in img-src when GTM is enabled", () => {
+  it("allows www.google.com.br in img-src and connect-src when GTM is enabled", () => {
     const withGtm = parse(
       buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: true }),
     );
@@ -125,12 +125,27 @@ describe("Content-Security-Policy (NFR-011, SEC-016, R-008)", () => {
     const frameTokens = (withGtm["frame-src"] ?? "").split(/\s+/);
 
     expect(imgTokens).toContain("https://www.google.com.br");
-    expect(connectTokens).not.toContain("https://www.google.com.br");
+    expect(connectTokens).toContain("https://www.google.com.br");
     expect(frameTokens).not.toContain("https://www.google.com.br");
     expect(withGtm["script-src"]).not.toContain("https://www.google.com.br");
 
     expect(withoutGtm["img-src"]).not.toContain("google.com.br");
     expect(withoutGtm["connect-src"]).not.toContain("google.com.br");
+  });
+
+  it("allows stats.g.doubleclick.net only in connect-src when GTM is enabled", () => {
+    const withGtm = parse(
+      buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: true }),
+    );
+    const withoutGtm = parse(
+      buildContentSecurityPolicy({ nonce: "N", isDev: false, gtmEnabled: false }),
+    );
+    const connectTokens = (withGtm["connect-src"] ?? "").split(/\s+/);
+    const imgTokens = (withGtm["img-src"] ?? "").split(/\s+/);
+
+    expect(connectTokens).toContain("https://stats.g.doubleclick.net");
+    expect(imgTokens).not.toContain("https://stats.g.doubleclick.net");
+    expect(withoutGtm["connect-src"]).not.toContain("stats.g.doubleclick.net");
   });
 
   it("sets object-src none, frame-ancestors none, base-uri self, form-action self", () => {

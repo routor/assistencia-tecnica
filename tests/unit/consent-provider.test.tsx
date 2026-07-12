@@ -22,7 +22,8 @@ describe("ConsentProvider UI", () => {
     cleanup();
     document.cookie = `${CONSENT_COOKIE_NAME}=; Path=/; Max-Age=0`;
     __resetConsentRuntimeForTests();
-    delete (window as { dataLayer?: unknown[] }).dataLayer;
+    delete (window as { dataLayer?: unknown[]; gtag?: unknown }).dataLayer;
+    delete (window as { gtag?: unknown }).gtag;
     document.querySelectorAll("script[data-consertify-gtm]").forEach((n) => n.remove());
   });
 
@@ -84,10 +85,23 @@ describe("ConsentProvider UI", () => {
     await user.click(within(dialog).getByRole("button", { name: /salvar preferências/i }));
     expect(readStoredDecision()).toMatchObject({ analytics: true, advertising: false });
     const dl = (window as { dataLayer: unknown[] }).dataLayer;
+    const asList = (entry: unknown): unknown[] | null => {
+      if (Array.isArray(entry)) return entry;
+      if (
+        entry &&
+        typeof entry === "object" &&
+        typeof (entry as { length?: unknown }).length === "number" &&
+        "0" in (entry as object)
+      ) {
+        return Array.from(entry as ArrayLike<unknown>);
+      }
+      return null;
+    };
     const update = [...dl]
       .reverse()
-      .find((e) => Array.isArray(e) && e[0] === "consent" && e[1] === "update") as unknown[];
-    expect(update[2]).toEqual({
+      .map(asList)
+      .find((e) => e && e[0] === "consent" && e[1] === "update");
+    expect(update?.[2]).toEqual({
       analytics_storage: "granted",
       ad_storage: "denied",
       ad_user_data: "denied",
