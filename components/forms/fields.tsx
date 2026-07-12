@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Option } from "@/lib/domain/options";
 import { HONEYPOT_FIELD } from "@/lib/domain/options";
+import { fieldControlId } from "@/lib/forms/lead-form-steps";
 
 /** Shared label row with a required/optional cue that never relies on color alone. */
 function LabelRow({
@@ -59,7 +60,7 @@ export function TextField({
   error?: string;
   defaultValue?: string;
 }) {
-  const id = useId();
+  const id = fieldControlId(name);
   const errorId = `${id}-error`;
   const hintId = `${id}-hint`;
   return (
@@ -105,7 +106,7 @@ export function SelectField({
   error?: string;
   defaultValue?: string;
 }) {
-  const id = useId();
+  const id = fieldControlId(name);
   const errorId = `${id}-error`;
   return (
     <div>
@@ -149,9 +150,10 @@ export function RadioField({
   error?: string;
   defaultValue?: string;
 }) {
-  const errorId = useId();
+  const id = fieldControlId(name);
+  const errorId = `${id}-error`;
   return (
-    <fieldset aria-describedby={errorId} aria-invalid={error ? true : undefined}>
+    <fieldset id={id} aria-describedby={errorId} aria-invalid={error ? true : undefined}>
       <legend className="text-sm font-semibold text-ink">
         {legend}{" "}
         <span className="text-ink-muted">{required ? "(obrigatório)" : "(opcional)"}</span>
@@ -200,7 +202,8 @@ export function CheckboxGroupField({
   error?: string;
   defaultValues?: string[];
 }) {
-  const errorId = useId();
+  const id = fieldControlId(name);
+  const errorId = `${id}-error`;
   const [selected, setSelected] = useState<string[]>(defaultValues);
 
   // T093: re-sync checked state from server-echoed values on invalid/error re-render (FR-022).
@@ -243,11 +246,16 @@ export function CheckboxGroupField({
   };
 
   return (
-    <fieldset aria-describedby={`${errorId} ${errorId}-count`} aria-invalid={error ? true : undefined}>
+    <fieldset
+      id={id}
+      tabIndex={error ? -1 : undefined}
+      aria-describedby={`${errorId} ${id}-count`}
+      aria-invalid={error ? true : undefined}
+    >
       <legend className="text-sm font-semibold text-ink">
         {legend} <span className="text-ink-muted">(escolha de {min} a {max})</span>
       </legend>
-      <p id={`${errorId}-count`} className="mt-1 text-sm text-ink-muted" aria-live="polite">
+      <p id={`${id}-count`} className="mt-1 text-sm text-ink-muted" aria-live="polite">
         {selected.length} de {max} selecionadas
       </p>
       {groups ? (
@@ -280,7 +288,7 @@ export function CheckboxField({
   defaultChecked?: boolean;
   children: React.ReactNode;
 }) {
-  const id = useId();
+  const id = fieldControlId(name);
   const errorId = `${id}-error`;
   return (
     <div>

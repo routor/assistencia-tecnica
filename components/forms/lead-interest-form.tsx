@@ -8,6 +8,11 @@ import { Honeypot } from "./fields";
 import { submitLead, type ActionState } from "@/lib/actions/submit-lead";
 import { pushAnalyticsEvent } from "@/lib/analytics/events";
 import { THANK_YOU_URL } from "@/lib/constants";
+import {
+  fieldControlId,
+  firstErrorField,
+  stepForFieldErrors,
+} from "@/lib/forms/lead-form-steps";
 import { step1Schema, toFieldErrors, type FieldErrors } from "@/lib/validation/lead";
 import type { Attribution } from "@/lib/analytics/attribution";
 
@@ -26,11 +31,17 @@ const ATTRIBUTION_KEYS: (keyof Attribution)[] = [
  * Two-step, accessible interest form (FR-011, FR-022, FR-025, NFR-001/008/009, CTR-001/002).
  * Server Action is authoritative; the client adds progressive feedback, one-time funnel events,
  * double-submit protection, focus management, and a client step-1 gate.
+ *
+ * Value preservation: React 19 resets uncontrolled forms after a Server Action settles. When the
+ * action returns `invalid`/`error` with echoed `values`, we remount the step field trees (echoKey)
+ * so defaultValue/defaultChecked apply from the server echo — no localStorage/sessionStorage.
  */
 export function LeadInterestForm({ attribution = {} }: { attribution?: Attribution }) {
   const [state, formAction, isPending] = useActionState(submitLead, INITIAL);
   const [step, setStep] = useState<1 | 2>(1);
   const [clientErrors, setClientErrors] = useState<FieldErrors>({});
+  const [echoKey, setEchoKey] = useState(0);
+  const [prevState, setPrevState] = useState(state);
   const formRef = useRef<HTMLFormElement>(null);
   const step1HeadingRef = useRef<HTMLHeadingElement>(null);
   const step2HeadingRef = useRef<HTMLHeadingElement>(null);
@@ -39,11 +50,45 @@ export function LeadInterestForm({ attribution = {} }: { attribution?: Attributi
   const successEmittedRef = useRef(false);
   const router = useRouter();
 
+  // Remount field trees when a new invalid/error echo arrives so React's post-action form reset
+  // restores the echoed defaults instead of the empty initial defaults (FR-022).
+  if (state !== prevState) {
+    setPrevState(state);
+    if (state.status === "invalid") {
+      setClientErrors({});
+      setEchoKey((k) => k + 1);
+      setStep(stepForFieldErrors(state.fieldErrors));
+    } else if (state.status === "error") {
+      setEchoKey((k) => k + 1);
+    }
+  }
+
   const serverErrors = state.status === "invalid" ? state.fieldErrors : {};
   const errors: FieldErrors = { ...serverErrors, ...clientErrors };
   const values = state.status === "invalid" || state.status === "error" ? state.values : {};
 
-  // React to server results.
+  const focusFirstInvalid = (preferredField?: string) => {
+    requestAnimationFrame(() => {
+      const preferred = preferredField
+        ? formRef.current?.querySelector<HTMLElement>(
+            `#${typeof CSS !== "undefined" && CSS.escape ? CSS.escape(fieldControlId(preferredField)) : fieldControlId(preferredField)}`,
+          )
+        : null;
+      const el =
+        preferred ??
+        formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+      if (!el) {
+        summaryRef.current?.focus();
+        return;
+      }
+      if (typeof el.scrollIntoView === "function") {
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+      el.focus();
+    });
+  };
+
+  // React to server results (analytics + focus after paint).
   useEffect(() => {
     if (state.status === "success" && !successEmittedRef.current) {
       successEmittedRef.current = true;
@@ -52,27 +97,23 @@ export function LeadInterestForm({ attribution = {} }: { attribution?: Attributi
       return;
     }
     if (state.status === "invalid") {
-      pushAnalyticsEvent("lead_form_validation_error", { form_step: 2 });
-      summaryRef.current?.focus();
+      pushAnalyticsEvent("lead_form_validation_error", {
+        form_step: stepForFieldErrors(state.fieldErrors),
+      });
+      focusFirstInvalid(firstErrorField(state.fieldErrors));
+      return;
     }
     if (state.status === "error") {
       pushAnalyticsEvent("lead_submit_error");
       summaryRef.current?.focus();
     }
-  }, [state, router]);
+  }, [state, router, echoKey]);
 
   const handleFirstInteraction = () => {
     if (!startedRef.current) {
       startedRef.current = true;
       pushAnalyticsEvent("lead_form_start");
     }
-  };
-
-  const focusFirstInvalid = () => {
-    requestAnimationFrame(() => {
-      const el = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
-      el?.focus();
-    });
   };
 
   const goToStep2 = () => {
@@ -86,9 +127,10 @@ export function LeadInterestForm({ attribution = {} }: { attribution?: Attributi
       segment: fd.get("segment"),
     });
     if (!result.success) {
-      setClientErrors(toFieldErrors(result.error));
+      const fieldErrors = toFieldErrors(result.error);
+      setClientErrors(fieldErrors);
       pushAnalyticsEvent("lead_form_validation_error", { form_step: 1 });
-      focusFirstInvalid();
+      focusFirstInvalid(firstErrorField(fieldErrors));
       return;
     }
     setClientErrors({});
@@ -126,22 +168,37 @@ export function LeadInterestForm({ attribution = {} }: { attribution?: Attributi
         </div>
       </div>
 
-      {/* Error summary / retry message (focusable, announced). */}
+      {/* Error summary / retry message (focusable, announced) — not the only error cue. */}
       {hasSummary ? (
         <div
           ref={summaryRef}
           tabIndex={-1}
           role="alert"
+          aria-labelledby="lead-error-summary-title"
           className="mb-6 rounded-md border border-danger bg-danger/10 p-4 text-sm text-ink focus-visible:outline-focus"
         >
           {state.status === "error" ? (
             <p>{state.message}</p>
           ) : (
             <>
-              <p className="font-semibold">Confira os campos destacados:</p>
+              <p id="lead-error-summary-title" className="font-semibold">
+                Confira os campos destacados:
+              </p>
               <ul className="mt-2 list-disc pl-5">
                 {errorList.map(([field, message]) => (
-                  <li key={field}>{message}</li>
+                  <li key={field}>
+                    <a
+                      href={`#${fieldControlId(field)}`}
+                      className="underline underline-offset-2 hover:text-accent focus-visible:outline-focus"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setStep(stepForFieldErrors({ [field]: message }));
+                        requestAnimationFrame(() => focusFirstInvalid(field));
+                      }}
+                    >
+                      {message}
+                    </a>
+                  </li>
                 ))}
               </ul>
             </>
@@ -164,7 +221,7 @@ export function LeadInterestForm({ attribution = {} }: { attribution?: Attributi
           Etapa 1 · Sobre você e o negócio
         </h3>
         <div className="mt-5">
-          <ContactStep errors={errors} values={values} />
+          <ContactStep key={`contact-${echoKey}`} errors={errors} values={values} />
         </div>
         <div className="mt-7">
           <button
@@ -192,7 +249,7 @@ export function LeadInterestForm({ attribution = {} }: { attribution?: Attributi
           Etapa 2 · Sua rotina de bancada
         </h3>
         <div className="mt-5">
-          <ContextStep errors={errors} values={values} />
+          <ContextStep key={`context-${echoKey}`} errors={errors} values={values} />
         </div>
         <div className="mt-7 flex flex-col gap-3 sm:flex-row-reverse sm:items-center">
           <button
